@@ -223,6 +223,13 @@ export default function Home() {
           console.log("might be a remote/local file");
         }
         parseUrl(text);
+      } else {
+        setErrorMessage("Please enter a valid URL (must be remote)");
+        setItem({
+          type: "text",
+          text,
+          rawMimeType: "text/plain",
+        });
       }
     } else {
       console.log("unknown type");
@@ -349,7 +356,7 @@ export default function Home() {
 
       <div className="flex w-full flex-col items-center justify-center gap-2">
         <p>metadata:</p>
-        <pre className="h-96 w-3/5 overflow-auto rounded-md border border-solid border-gray-300 bg-slate-100 p-4">
+        <pre className="h-96 w-full overflow-auto rounded-md border border-solid border-gray-300 bg-slate-100 p-4">
           {item && JSON.stringify(item, null, 2)}
         </pre>
       </div>
