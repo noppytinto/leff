@@ -103,8 +103,8 @@ function formatDateIntoISO8601(date: Date) {
 }
 
 export default function Home() {
-  const [url, setUrl] = React.useState("");
-  const [isUrlValid, setIsUrlValid] = React.useState(true);
+  // const [url, setUrl] = React.useState("");
+  // const [isUrlValid, setIsUrlValid] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState("");
   const [imageSrc, setImageSrc] = React.useState<string | null>("");
   const [item, setItem] = React.useState<FileItem | TextItem | URLItem | null>(
@@ -121,7 +121,7 @@ export default function Home() {
       console.log("fffffffffffffffffffffffffffffffffffffffffff url:", url);
       setItem(null);
       setErrorMessage("");
-      setIsUrlValid(false);
+      // setIsUrlValid(false);
       return;
     }
 
@@ -139,13 +139,13 @@ export default function Home() {
       setItem(data);
     }
 
-    setUrl(internalUrl);
-    setIsUrlValid(isValid);
+    // setUrl(internalUrl);
+    // setIsUrlValid(isValid);
   }
 
   function onFormSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    console.log(url);
+    // console.log(url);
   }
 
   // async function handleOnPastButtonClick() {
