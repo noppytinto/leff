@@ -5,6 +5,8 @@ import { isValidURL, maybeAddScheme } from "../utils/utils";
 import { parseURL } from "../entities/urlData";
 // import styles from "./App.module.scss";
 
+import debounce from "lodash/debounce";
+
 export default function Home() {
   const [url, setUrl] = React.useState("");
   const urlInputRef = React.useRef<HTMLInputElement>(null);
@@ -12,21 +14,21 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = React.useState("");
   const [urlData, setUrlData] = React.useState("");
 
-  function onUrlChange(event: React.ChangeEvent<HTMLInputElement>) {
-    let url = event.currentTarget.value;
+  function handleUrlChange(url: string) {
+    let internalUrl = url;
 
-    const isValid = isValidURL(url);
+    const isValid = isValidURL(internalUrl);
     if (!isValid) {
       setErrorMessage("Please enter a valid URL");
       setUrlData("");
     } else {
-      url = maybeAddScheme(url);
+      internalUrl = maybeAddScheme(internalUrl);
       setErrorMessage("");
-      const data = parseURL(url);
+      const data = parseURL(internalUrl);
       setUrlData(JSON.stringify(data, null, 2));
     }
 
-    setUrl(url);
+    setUrl(internalUrl);
     setIsUrlValid(isValid);
   }
 
@@ -49,7 +51,10 @@ export default function Home() {
           name="url"
           type="url"
           className=" h-12 w-96 rounded border border-solid border-gray-700 px-4 py-2"
-          onChange={onUrlChange}
+          onChange={debounce((event) => {
+            console.log(event);
+            handleUrlChange(event.target.value);
+          }, 500)}
         />
 
         {!isUrlValid && (
