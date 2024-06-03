@@ -184,7 +184,7 @@ export default function Home() {
         name,
         lastModified: formatDateIntoISO8601(new Date(file.lastModified)),
       });
-      inputRef.current.value = "";
+      event.currentTarget.value = "";
     }
     // if is a file from local
     // e.g. "Copy" from the local file system
@@ -205,7 +205,7 @@ export default function Home() {
         lastModified: formatDateIntoISO8601(new Date(file.lastModified)),
       });
 
-      inputRef.current.value = "";
+      event.currentTarget.value = "";
     }
     // if is plain text
     else if (types.includes("text/plain")) {
