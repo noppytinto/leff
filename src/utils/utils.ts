@@ -19,3 +19,36 @@ export function debounce(fn: Function, delay: number) {
     }, delay);
   };
 }
+
+const urlPattern = new RegExp(
+  /^(https?:\/\/)?([\w.-]+)\.([a-z]{2,})(:\d{1,5})?(\/[^?#]*)*(\?([^#]*))?(#.*)?$/i,
+);
+
+const httpsPattern = new RegExp(/^https:\/\//i);
+
+export function isSecure(url: string) {
+  return httpsPattern.test(url);
+}
+
+function hasScheme(url: string) {
+  return url.startsWith("http://") || url.startsWith("https://");
+}
+
+export function isValidURL(url: string) {
+  if (!url) {
+    return false;
+  }
+
+  return urlPattern.test(url);
+}
+
+/**
+ * Attempts to add a scheme to a URL
+ * if it doesn't have one
+ *
+ * @param url
+ * @returns
+ */
+export function maybeAddScheme(url: string) {
+  return hasScheme(url) ? url : `https://${url}`;
+}
