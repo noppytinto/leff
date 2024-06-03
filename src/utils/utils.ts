@@ -26,7 +26,7 @@ const urlPattern = new RegExp(
 
 const httpsPattern = new RegExp(/^https:\/\//i);
 
-export function isSecure(url: string) {
+export function isURLSecure(url: string) {
   return httpsPattern.test(url);
 }
 

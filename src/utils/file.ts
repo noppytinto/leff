@@ -47,3 +47,5 @@ export function createFileFromBlob(blob) {
 
   return file;
 }
+
+export const hasExtensionRegex = /\.[a-zA-Z0-9]+$/;
