@@ -7,7 +7,7 @@ import { parseURL } from "../entities/urlData";
 import debounce from "lodash/debounce";
 
 type MimeType = "text" | "image" | "application" | "unknown";
-type ClipboardItem = {
+type Item = {
   type: "text" | "image" | "application" | "unknown";
   extension: string;
   title: string;
@@ -73,19 +73,27 @@ function isFromHtml(blob: Blob): boolean {
   return blob.type.includes("text/html");
 }
 
-function typeIsImage(types: readonly string[]): boolean {
+function clipboardItemIsImage(clipboardItem: ClipboardItem): boolean {
+  console.log("fffffffffffffffffffffffffffff image");
+  const types = clipboardItem.types;
   return !!types.filter((type) => type.includes("image")).length;
 }
 
-function typeIsText(types: readonly string[]): boolean {
+function clipboardItemIsText(clipboardItem: ClipboardItem): boolean {
+  console.log("fffffffffffffffffffffffffffff text");
+  const types = clipboardItem.types;
   return !!types.filter((type) => type.includes("text")).length;
 }
 
-function typeIsDocument(types: readonly string[]): boolean {
+function clipboardItemIsDocument(clipboardItem: ClipboardItem): boolean {
+  console.log("fffffffffffffffffffffffffffff document");
+  const types = clipboardItem.types;
   return !!types.filter((type) => type.includes("application")).length;
 }
 
 async function printBlobMetadata(blob: Blob) {
+  console.log("fffffffffffffffffffff blob", blob);
+
   const type = getSupportedType(blob);
   const extension = getFileExtension(blob);
   const title = getTitle(blob);
@@ -110,55 +118,20 @@ function getAnyDataFromClipboad(): ClipboardItem | null {
       clipboardItems.forEach(async (item) => {
         console.log("fffffffffffffffffffffffffffff item", item);
 
-        const types = item.types;
-
         // if type contains image
-        if (typeIsImage(types)) {
-          console.log("fffffffffffffffffffffffffffff image");
+        if (clipboardItemIsImage(item)) {
+          const types = item.types;
           const blob = await item.getType(types[1]);
-          console.log("fffffffffffffffffffff blob", blob);
           printBlobMetadata(blob);
-        } else if (typeIsDocument(types)) {
-          console.log("fffffffffffffffffffffffffffff document");
+        } else if (clipboardItemIsDocument(item)) {
           const blob = await item.getType("application/pdf");
           printBlobMetadata(blob);
-        } else if (typeIsText(types)) {
-          console.log("fffffffffffffffffffffffffffff text");
+        } else if (clipboardItemIsText(item)) {
           const blob = await item.getType("text/plain");
           const text = await blob.text();
-          console.log("ffffffffffffffffffffffff text", text);
           printBlobMetadata(blob);
+          console.log("ffffffffffffffffffffffff text", text);
         }
-
-        // console.log(blob.type);
-
-        // if (blob.type.includes("text")) {
-        //   const text = await blob.text();
-        //   const type = getSupportedType(blob);
-        //   const extension = getFileExtension(blob);
-        //   const title = getTitle(blob);
-        //   const lastModified = getLasModified(blob);
-
-        //   console.log("ffffffffffffffffffffffff text", text);
-        //   console.log("ffffffffffffffffffffffff type", type);
-        //   console.log("ffffffffffffffffffffffff extension", extension);
-        //   console.log("ffffffffffffffffffffffff title", title);
-        //   console.log("ffffffffffffffffffffffff lastModified", lastModified);
-        //   return { type: "text", text };
-        // } else if (blob.type.includes("image")) {
-        //   const image = await blob.arrayBuffer();
-        //   const type = getSupportedType(blob);
-        //   const extension = getFileExtension(blob);
-        //   const title = getTitle(blob);
-        //   const lastModified = getLasModified(blob);
-
-        //   console.log("ffffffffffffffffffffffff type", type);
-        //   console.log("ffffffffffffffffffffffff extension", extension);
-        //   console.log("ffffffffffffffffffffffff title", title);
-        //   console.log("ffffffffffffffffffffffff lastModified", lastModified);
-
-        //   console.log(image);
-        // }
       });
     })
     .catch((err) => {
