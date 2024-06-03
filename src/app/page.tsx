@@ -262,7 +262,7 @@ export default function Home() {
 
             parseUrl(event.target.value);
           }, 500)}
-          placeholder="Paste anything from clipboard"
+          placeholder="Type or Paste here..."
           onPaste={handleOnPaste}
           ref={inputRef}
         />
