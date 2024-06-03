@@ -1,6 +1,7 @@
 import { isSecure, maybeAddScheme } from "../utils/utils";
+import { URLItem } from "./item";
 
-type URLData = {
+export type URLData = {
   fullUrl: string;
   scheme: string;
   host: string;
@@ -11,7 +12,7 @@ type URLData = {
   isSecure: boolean;
 };
 
-export function parseURL(url: string): URLData {
+export function parseURL(url: string): URLItem {
   let urlData: URL = undefined;
   try {
     url = maybeAddScheme(url);
@@ -21,6 +22,9 @@ export function parseURL(url: string): URLData {
   }
 
   return {
+    type: "text",
+    text: url,
+    rawMimeType: "text/plain",
     fullUrl: url,
     scheme: urlData?.protocol?.replace(":", "") || "",
     host: urlData?.hostname || "",
