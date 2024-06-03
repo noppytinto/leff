@@ -2,7 +2,7 @@
 
 import React from "react";
 import { isValidURL, maybeAddScheme } from "../utils/utils";
-import { parseURL } from "../types/urlData";
+import { parseURL } from "../entities/urlData";
 // import styles from "./App.module.scss";
 
 export default function Home() {
@@ -36,7 +36,7 @@ export default function Home() {
   }
 
   return (
-    <main className="flex h-lvh items-center justify-center p-3">
+    <main className="flex h-lvh flex-col items-center justify-center gap-4 p-3">
       <pre>{urlData}</pre>
       <form
         onSubmit={onFormSubmit}
