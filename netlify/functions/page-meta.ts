@@ -138,8 +138,8 @@ const getPageContentWithPuppeteer = async (url: string) => {
 
   const page = await browser.newPage();
   // await page.setViewport({ width: 1920, height: 1080 });
+  await page.waitForNetworkIdle(); // Wait for network resources to fully load
   await page.goto(url);
-  // await page.waitForNetworkIdle(); // Wait for network resources to fully load
   const pageData = await page.content();
   await browser.close();
 
