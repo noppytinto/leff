@@ -142,6 +142,7 @@ export default function Home() {
         className="flex flex-col items-center justify-center gap-2"
         noValidate
         onSubmit={(event) => {
+          // disable form submission
           event.preventDefault();
         }}
       >
