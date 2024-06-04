@@ -1,9 +1,10 @@
 import { CheerioAPI, load } from "cheerio";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
 import jsdom from "jsdom";
 import { Readability } from "@mozilla/readability";
-import PCR from "puppeteer-chromium-resolver";
+// import PCR from "puppeteer-chromium-resolver";
 import { isValidURL } from "../../src/utils/utils";
+import chromium from "@sparticuz/chromium";
 
 export const handler = async (event, context) => {
   // get params
@@ -102,18 +103,37 @@ export const handler = async (event, context) => {
  * @param url
  */
 const getPageContentWithPuppeteer = async (url: string) => {
+  // Optional: If you'd like to use the new headless mode. "shell" is the default.
+  // NOTE: Because we build the shell binary, this option does not work.
+  //       However, this option will stay so when we migrate to full chromium it will work.
+  chromium.setHeadlessMode = true;
+
+  // Optional: If you'd like to disable webgl, true is the default.
+  // chromium.setGraphicsMode = false;
+
   // resolve puppeteer chromium path
-  const stats = await PCR({});
+  // const stats = await PCR({});
+  //
+  // console.log(
+  //   "fffffffffffffffffffffffffffffffffffffffffff stats:",
+  //   stats.executablePath,
+  // );
+
+  console.log("fffffffffffffffffffffffffffffffffffffffffff pup url:", url);
+
+  const executablePath = await chromium.executablePath();
 
   console.log(
-    "fffffffffffffffffffffffffffffffffffffffffff stats:",
-    stats.executablePath,
+    "fffffffffffffffffffffffffffffffffffffffffff executablePath:",
+    executablePath,
   );
 
   // get page content using puppeteer in headless mode
   const browser = await puppeteer.launch({
-    headless: "new", // use new headless mode (recommended)
-    executablePath: stats.executablePath,
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath,
+    headless: chromium.headless,
   });
 
   const page = await browser.newPage();
