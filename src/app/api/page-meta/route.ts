@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
  */
 const getPageContentWithPuppeteer = async (url: string) => {
   // resolve puppeteer chromium path
-  const stats = await PCR();
+  const stats = await PCR({});
 
   console.log(
     "fffffffffffffffffffffffffffffffffffffffffff stats:",
