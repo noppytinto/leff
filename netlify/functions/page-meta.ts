@@ -109,7 +109,7 @@ const getPageContentWithPuppeteer = async (url: string) => {
   chromium.setHeadlessMode = true;
 
   // Optional: If you'd like to disable webgl, true is the default.
-  // chromium.setGraphicsMode = false;
+  chromium.setGraphicsMode = false;
 
   // resolve puppeteer chromium path
   // const stats = await PCR({});
