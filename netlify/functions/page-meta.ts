@@ -136,18 +136,14 @@ const getPageContentWithPuppeteer = async (url: string) => {
     headless: chromium.headless,
   });
 
-  await delay(1000); // Wait a bit due to race condition issues on k8s (the pod crashed).
-
   const page = await browser.newPage();
-  await delay(1000);
   // await page.setViewport({ width: 1920, height: 1080 });
   await page.goto(url, {
-    waitUntil: ["domcontentloaded", "networkidle0"],
+    waitUntil: ["domcontentloaded", "networkidle0", "load"],
   });
-  await delay(1000);
-  // await page.waitForNetworkIdle(); // Wait for network resources to fully load
+  await page.waitForNetworkIdle(); // Wait for network resources to fully load
+  await page.waitForSelector("body");
   const pageData = await page.content();
-  await delay(1000);
   await browser.close();
 
   return pageData;
