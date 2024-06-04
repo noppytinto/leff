@@ -12,7 +12,13 @@ export type URLData = {
   isSecure: boolean;
 };
 
-export type ItemType = "text" | "image" | "document" | "unknown";
+export type ItemType =
+  | "text"
+  | "image"
+  | "document"
+  | "unknown"
+  | "url"
+  | "fileUrl";
 
 export type BaseItem = {
   type: ItemType;
@@ -82,7 +88,7 @@ export function buildURLItem(url: string): URLItem {
   }
 
   return {
-    type: "text",
+    type: isFileUrl(url) ? "fileUrl" : "url",
     text: url,
     rawMimeType: "text/plain",
     fullUrl: urlData?.href,
@@ -94,4 +100,27 @@ export function buildURLItem(url: string): URLItem {
     fragment: urlData?.hash,
     isSecure: isURLSecure(url),
   };
+}
+
+function isFileUrl(url) {
+  const imagePattern = /\.(jpg|jpeg|png|gif|bmp|webp|svg|ico|tiff|tif|psd)$/i;
+  const documentPattern =
+    /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|odg|txt|csv|rtf|tex)$/i;
+  const codePattern =
+    /\.(html|htm|css|js|php|py|rb|java|c|cpp|h|sh|bat|cmd|go|rs|pl|swift|sql|r|kt|ts|tsx|vue|sc|scala|jl|lua|ini|cfg|conf|log)$/i;
+  const executablePattern = /\.(exe|dll|bin|iso|dmg|img|msi|app|deb|rpm)$/i;
+  const archivePattern = /\.(zip|rar|7z|tar|gz|bz2|xz|lz|z)$/i;
+  const audioPattern = /\.(mp3|wav|flac|aac|ogg|m4a|wma)$/i;
+  const videoPattern =
+    /\.(mp4|avi|mkv|mov|wmv|flv|webm|mpg|mpeg|3gp|m4v|m2ts|mts|vob|rm|rmvb|asf|f4v)$/i;
+
+  return (
+    imagePattern.test(url) ||
+    documentPattern.test(url) ||
+    codePattern.test(url) ||
+    executablePattern.test(url) ||
+    archivePattern.test(url) ||
+    audioPattern.test(url) ||
+    videoPattern.test(url)
+  );
 }

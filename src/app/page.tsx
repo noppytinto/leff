@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { isValidURL, maybeAddScheme } from "../utils/utils";
 import debounce from "lodash/debounce";
 import {
-  buildDocumentItem,
-  buildImageItem,
   buildURLItem,
   DocumentItem,
   FileItem,
@@ -16,6 +14,14 @@ import Image from "next/image";
 import buildPastedItem from "../entities/buildPastedItem";
 // import styles from "./App.module.scss";
 
+type PageMetadata = {
+  title: string;
+  description: string;
+  image: string;
+  favicon: string;
+  error?: boolean;
+};
+
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [item, setItem] = React.useState<FileItem | ImageItem | URLItem | null>(
@@ -23,6 +29,57 @@ export default function Home() {
   );
   const pasteFlag = useRef(false);
   const [errorMessage, setErrorMessage] = React.useState("");
+  const [pageMetadata, setPageMetadata] = React.useState<PageMetadata | null>(
+    null,
+  );
+  const urlPreviewImageRef = useRef<HTMLImageElement>(null);
+  const [pageMetadataIsLoading, setPageMetadataIsLoading] =
+    React.useState(false);
+
+  function handleOnErrorPagePreviewImage(
+    event: React.SyntheticEvent<HTMLImageElement, Event>,
+  ) {
+    console.log("fffffffffffffffffffffffffffffffffffffffffff error:", event);
+    // urlPreviewImageRef.current.src = pageMetadata.favicon;
+
+    // detect network error using next
+
+    event.currentTarget.style.display = "none";
+  }
+
+  // fetch url metadata
+  useEffect(() => {
+    if (!item) return;
+    if (item.type !== "url") return;
+
+    setPageMetadata(null);
+    setErrorMessage("");
+
+    const url = (item as URLItem).fullUrl;
+    console.log("fffffffffffffffffffffffffffffffffffffffffff url:", url);
+
+    setPageMetadataIsLoading(true);
+    fetch(`/api/page-meta?url=${url}`)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("fffffffffffffffffffffffffffffffffffffffffff data:", data);
+        if (data.error) {
+          setErrorMessage("Error fetching page metadata");
+          setPageMetadataIsLoading(false);
+          return;
+        }
+
+        setPageMetadataIsLoading(false);
+
+        setPageMetadata({
+          title: data.title,
+          description: data.description,
+          image: data.image,
+          favicon: data.favicon,
+          error: data.error,
+        });
+      });
+  }, [JSON.stringify(item)]);
 
   // ============================================
   // FUNCTIONS
@@ -54,20 +111,24 @@ export default function Home() {
 
   function handleOnPaste(event: React.ClipboardEvent<HTMLInputElement>) {
     pasteFlag.current = true;
+
+    // TODO: fix image broken after paste 2nd time
+    if (urlPreviewImageRef && urlPreviewImageRef.current)
+      urlPreviewImageRef.current.style.display = "block";
     setErrorMessage("");
     inputRef.current.value = "";
 
     const clipboardData = event.clipboardData;
     const item = buildPastedItem(clipboardData);
 
-    if (item.type === "unknown") {
-      setErrorMessage(
-        "Please enter a valid URL (must be remote) or a valid document file",
-      );
-      setItem(null);
-    } else {
-      setItem(item);
+    if (item.type !== "unknown") {
+      return setItem(item);
     }
+
+    setErrorMessage(
+      "Please enter a valid URL (must be remote) or a valid document file",
+    );
+    setItem(null);
   }
 
   // ============================================
@@ -182,6 +243,44 @@ export default function Home() {
           />
         </div>
       </div> */}
+      {item && item.type === "url" && (
+        <div className="flex flex-col items-center justify-center gap-2">
+          {pageMetadataIsLoading && (
+            <div className="flex items-center justify-center gap-2">
+              <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-gray-900"></div>
+            </div>
+          )}
+          {pageMetadata && (
+            <div className="flex h-[200px] max-w-[500px] flex-col items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-4 rounded-md border border-solid border-gray-300 p-4">
+                <div className="flex flex-grow-[3] flex-col items-start justify-center gap-2">
+                  <div className="flex items-center justify-center gap-2">
+                    <Image
+                      loader={() => pageMetadata.favicon}
+                      src={pageMetadata.favicon}
+                      alt="favicon"
+                      className="min-h-[32px] min-w-[32px] rounded-sm object-contain"
+                      width={32}
+                      height={32}
+                    />
+                    <p className="text-lg font-bold">{pageMetadata.title}</p>
+                  </div>
+                  <p className=" line-clamp-5 text-wrap text-sm">
+                    {pageMetadata.description}
+                  </p>
+                </div>
+                <img
+                  src={pageMetadata.image}
+                  alt="image"
+                  ref={urlPreviewImageRef}
+                  className="max-w-[120px] self-stretch rounded-md object-cover shadow-md"
+                  onError={handleOnErrorPagePreviewImage}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {item && item.type === "image" && (
         <div className=" relative h-[150px] w-1/4">
