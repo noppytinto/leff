@@ -60,7 +60,9 @@ export default function Home() {
     console.log("fffffffffffffffffffffffffffffffffffffffffff url:", url);
 
     setPageMetadataIsLoading(true);
-    fetch(`/api/page-meta?url=${url}`)
+    const apiUrl = `/api/page-meta?url=${url}`;
+    const netlifyFunctionUrl = `/.netlify/functions/page-metadata?url=${url}`;
+    fetch(apiUrl)
       .then((response) => response.json())
       .then((data) => {
         console.log("fffffffffffffffffffffffffffffffffffffffffff data:", data);

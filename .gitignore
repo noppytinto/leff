@@ -178,3 +178,6 @@ next-env.d.ts
 /.idea
 /.vscode
 /.fleet
+
+# Local Netlify folder
+.netlify
