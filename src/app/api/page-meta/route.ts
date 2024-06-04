@@ -4,6 +4,7 @@ import { isValidURL } from "../../../utils/utils";
 import jsdom from "jsdom";
 import { Readability } from "@mozilla/readability";
 import puppeteer from "puppeteer";
+import PCR from "puppeteer-chromium-resolver";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -11,7 +12,12 @@ export async function GET(req: NextRequest) {
   const baseUrl = new URL(sanitizedUrl).origin;
 
   try {
-    const response = await fetch(sanitizedUrl);
+    const response = await fetch(sanitizedUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+      },
+    });
 
     if (!response.ok) {
       // if Forbidden,
@@ -86,9 +92,18 @@ export async function GET(req: NextRequest) {
  * @param url
  */
 const getPageContentWithPuppeteer = async (url: string) => {
+  // resolve puppeteer chromium path
+  const stats = await PCR();
+
+  console.log(
+    "fffffffffffffffffffffffffffffffffffffffffff stats:",
+    stats.executablePath,
+  );
+
   // get page content using puppeteer in headless mode
   const browser = await puppeteer.launch({
     headless: "new", // use new headless mode (recommended)
+    executablePath: stats.executablePath,
   });
 
   const page = await browser.newPage();
