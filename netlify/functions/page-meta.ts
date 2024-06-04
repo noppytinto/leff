@@ -121,18 +121,11 @@ const getPageContentWithPuppeteer = async (url: string) => {
 
   console.log("fffffffffffffffffffffffffffffffffffffffffff pup url:", url);
 
-  const executablePath = await chromium.executablePath();
-
-  console.log(
-    "fffffffffffffffffffffffffffffffffffffffffff executablePath:",
-    executablePath,
-  );
-
   // get page content using puppeteer in headless mode
   const browser = await puppeteer.launch({
     args: chromium.args,
     defaultViewport: chromium.defaultViewport,
-    executablePath,
+    executablePath: await chromium.executablePath(),
     headless: chromium.headless,
   });
 
