@@ -3,6 +3,7 @@ import { CheerioAPI, load } from "cheerio";
 import { isValidURL } from "../../../utils/utils";
 import jsdom from "jsdom";
 import { Readability } from "@mozilla/readability";
+import puppeteer from "puppeteer";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -10,29 +11,47 @@ export async function GET(req: NextRequest) {
   const baseUrl = new URL(sanitizedUrl).origin;
 
   try {
-    const pageData = await fetch(sanitizedUrl, {
-      headers: {
-        "Content-Type": "text/html",
-      },
-    });
+    const response = await fetch(sanitizedUrl);
 
-    if (!pageData.ok) {
-      console.error(
-        "fffffffffffffffffffffffffffffffffffffffffff ERROR fetching page metadata:",
-        pageData.statusText,
+    if (!response.ok) {
+      // if Forbidden,
+      // because for example
+      // the page is dynamic and requires JavaScript to render
+      console.log(
+        "fffffffffffffffffffffffffffffffffffffffffff response.status :",
+        response.status,
       );
+      if (response.status === 403) {
+        console.log(
+          "fffffffffffffffffffffffffffffffffffffffffff using puppeteer",
+        );
+        const pageContent = await getPageContentWithPuppeteer(sanitizedUrl);
+        const $ = load(pageContent);
 
+        return Response.json({
+          title: getTitle($),
+          description: getDescription($),
+          image: getImageSrc($, baseUrl),
+          favicon: getFaviconSrc(baseUrl),
+          html: pageContent,
+          error: false,
+          errorMessage: "",
+        });
+      }
+
+      // if any other error
       return Response.json({
         title: "",
         description: "",
         image: "",
         favicon: "",
         error: true,
+        errorMessage: String("ERROR" + response.statusText),
       });
     }
 
     // get page metadata using cheerio
-    const html = await pageData.text();
+    const html = await response.text();
     const $ = load(html);
 
     return Response.json({
@@ -42,6 +61,7 @@ export async function GET(req: NextRequest) {
       favicon: getFaviconSrc(baseUrl),
       html,
       error: false,
+      errorMessage: "",
     });
   } catch (error) {
     console.error(
@@ -55,9 +75,31 @@ export async function GET(req: NextRequest) {
       image: "",
       favicon: "",
       error: true,
+      errorMessage: String(error),
     });
   }
 }
+
+/**
+ * Only use this function
+ * if the page is dynamic and requires JavaScript to render
+ * @param url
+ */
+const getPageContentWithPuppeteer = async (url: string) => {
+  // get page content using puppeteer in headless mode
+  const browser = await puppeteer.launch({
+    headless: "new", // use new headless mode (recommended)
+  });
+
+  const page = await browser.newPage();
+  // await page.setViewport({ width: 1920, height: 1080 });
+  await page.goto(url);
+  // await page.waitForNetworkIdle(); // Wait for network resources to fully load
+  const pageData = await page.content();
+  await browser.close();
+
+  return pageData;
+};
 
 function getImageSrc($: CheerioAPI, baseUrl: string) {
   const cheerioSrc =
@@ -138,8 +180,8 @@ function maybeAddBaseUrl(url: string, baseUrl: string) {
 
 function sanitizeUrl(url: string) {
   // trim and remove trailing slash
-  const dirtyUrl = url.trim().replace(/\/$/, "");
-  return new URL(dirtyUrl).href;
+  const trimmedUrl = new URL(url).href;
+  return trimmedUrl.replace(/\/$/, "");
 }
 
 // function maybeDecodeUrl(url: string) {

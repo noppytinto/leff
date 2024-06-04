@@ -20,6 +20,7 @@ type PageMetadata = {
   image: string;
   favicon: string;
   error?: boolean;
+  errorMessage?: string;
 };
 
 export default function Home() {
@@ -243,6 +244,8 @@ export default function Home() {
           />
         </div>
       </div> */}
+
+      {/*=============================================== URL CARD*/}
       {item && item.type === "url" && (
         <div className="flex flex-col items-center justify-center gap-2">
           {pageMetadataIsLoading && (
@@ -263,9 +266,11 @@ export default function Home() {
                       width={32}
                       height={32}
                     />
-                    <p className="text-lg font-bold">{pageMetadata.title}</p>
+                    <p className="line-clamp-2 text-lg font-bold">
+                      {pageMetadata.title}
+                    </p>
                   </div>
-                  <p className=" line-clamp-5 text-wrap text-sm">
+                  <p className=" line-clamp-4 text-wrap text-sm">
                     {pageMetadata.description}
                   </p>
                 </div>
@@ -282,6 +287,7 @@ export default function Home() {
         </div>
       )}
 
+      {/*=============================================== IMAGE CARD*/}
       {item && item.type === "image" && (
         <div className=" relative h-[150px] w-1/4">
           <Image
@@ -293,6 +299,7 @@ export default function Home() {
         </div>
       )}
 
+      {/*=============================================== DOCUMENT CARD*/}
       {item && item.type === "document" && (
         <div className=" justify-censter flex flex-col items-center gap-2 p-4">
           <div className="relative flex h-[200px] w-[150px] flex-col items-center justify-center gap-2 rounded-md rounded-tr-3xl border border-solid border-gray-300 p-4">
@@ -313,6 +320,7 @@ export default function Home() {
         </div>
       )}
 
+      {/*=============================================== METADATA CARD*/}
       {item && (
         <div className="flex w-full flex-col items-center justify-center gap-2">
           <p>metadata:</p>
