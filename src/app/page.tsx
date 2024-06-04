@@ -61,7 +61,6 @@ export default function Home() {
 
     setPageMetadataIsLoading(true);
     const apiUrl = `/api/page-meta?url=${url}`;
-    const netlifyFunctionUrl = `/.netlify/functions/page-metadata?url=${url}`;
     fetch(apiUrl)
       .then((response) => response.json())
       .then((data) => {
