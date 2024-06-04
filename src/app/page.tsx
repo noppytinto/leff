@@ -45,7 +45,7 @@ export default function Home() {
 
     // detect network error using next
 
-    event.currentTarget.style.display = "none";
+    urlPreviewImageRef.current.style.display = "none";
   }
 
   // fetch url metadata
@@ -141,6 +141,9 @@ export default function Home() {
       <form
         className="flex flex-col items-center justify-center gap-2"
         noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+        }}
       >
         <input
           id="form-input"
