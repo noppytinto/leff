@@ -1,4 +1,5 @@
 import { URLMetadataResponse } from "../app/api/url-meta/route";
+import { isURLSecure, maybeAddScheme } from "../utils/utils";
 
 const BASE_API_URL_META_URL = "/api/url-meta";
 
@@ -83,4 +84,26 @@ export async function getURLMetadata(
       errorMessage: String(error),
     };
   }
+}
+
+export function buildURLMetadata(url: string): URLMetadata | null {
+  let urlData: URL;
+  try {
+    url = maybeAddScheme(url);
+    urlData = new URL(url);
+  } catch (error) {
+    console.error("Invalid URL", error);
+    return null;
+  }
+
+  return {
+    fullUrl: urlData?.href,
+    scheme: urlData?.protocol?.replace(":", ""),
+    host: urlData?.hostname,
+    port: urlData?.port,
+    path: urlData?.pathname,
+    query: urlData?.search,
+    fragment: urlData?.hash,
+    isSecure: isURLSecure(url),
+  };
 }
