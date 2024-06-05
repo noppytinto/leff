@@ -161,7 +161,7 @@ export default function Home() {
             }
 
             parseUrl(event.target.value);
-          }, 500)}
+          }, 800)}
           placeholder="Type or Paste here..."
           onPaste={handleOnPaste}
           ref={inputRef}

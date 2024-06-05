@@ -1,6 +1,0 @@
-[[plugins]]
-  package = "netlify-plugin-chromium"
-
-[functions]  
-  node_bundler = "esbuild"
-  external_node_modules = ["jsdom", "@sparticuz/chromium"]
