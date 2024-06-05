@@ -10,17 +10,17 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
   const netlifyFunctionsUrl = process.env.NETLIFY_FUNCTIONS_URL;
+  const remoteApiUrl = process.env.API_URL;
   console.log(
     "fffffffffffffffffffffffffffffffffffffffffff netlifyFunctionsUrl:",
     netlifyFunctionsUrl,
   );
   const givenUrl = searchParams.get("url");
   const apiUrl = `${netlifyFunctionsUrl}/page-meta?url=${givenUrl}`;
-
-  console.log("fffffffffffffffffffffffffffffffffffffffffff apiUrl:", apiUrl);
+  const apiUrl2 = `${remoteApiUrl}/page-meta?url=${givenUrl}`;
 
   try {
-    const response = await fetch(apiUrl, {
+    const response = await fetch(apiUrl2, {
       headers: {
         "Content-Type": "application/json",
       },
