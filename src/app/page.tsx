@@ -30,6 +30,9 @@ export default function Home() {
   const [pageMetadataIsLoading, setPageMetadataIsLoading] =
     React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>("");
+  const [clipboardData, setClipboardData] = React.useState<DataTransfer | null>(
+    null,
+  );
 
   // fetch url metadata
   useEffect(() => {
@@ -106,6 +109,30 @@ export default function Home() {
     };
   }, [inputValue]);
 
+  useEffect(() => {
+    const ac = new AbortController();
+
+    if (!clipboardData) return;
+
+    (async () => {
+      const item = await buildPastedItem(clipboardData);
+      if (ac.signal.aborted) return;
+
+      if (item.type !== "unknown") {
+        return setItem(item);
+      }
+
+      setErrorMessage(
+        "Please enter a valid URL (must be remote) or a valid document file",
+      );
+      setItem(null);
+    })();
+
+    return () => {
+      ac.abort();
+    };
+  }, [JSON.stringify(clipboardData)]);
+
   // ============================================
   // FUNCTIONS
   // ============================================
@@ -124,16 +151,7 @@ export default function Home() {
     inputRef.current.value = "";
 
     const clipboardData = event.clipboardData;
-    const item = buildPastedItem(clipboardData);
-
-    if (item.type !== "unknown") {
-      return setItem(item);
-    }
-
-    setErrorMessage(
-      "Please enter a valid URL (must be remote) or a valid document file",
-    );
-    setItem(null);
+    setClipboardData(clipboardData);
   }
 
   function handleOnErrorPagePreviewImage(

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { isURLSecure, isValidURL, maybeAddScheme } from "../../../utils/utils";
+import { isValidURL, maybeAddScheme } from "../../../utils/utils";
 import { sanitizeUrl } from "../../../utils/url";
 import {
   buildURLMetadata,

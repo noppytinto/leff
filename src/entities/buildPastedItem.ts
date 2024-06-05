@@ -9,9 +9,9 @@ import {
 } from "./item";
 import { isValidURL } from "../utils/utils";
 
-function buildPastedItem(
+async function buildPastedItem(
   clipboardData: DataTransfer,
-): ImageItem | BaseItem | URLItem | DocumentItem {
+): Promise<BaseItem | DocumentItem | ImageItem | URLItem> {
   const types = clipboardData.types;
   console.log(
     "fffffffffffffffffffffffffffffffff clipboardData: ",
@@ -62,7 +62,7 @@ function buildPastedItem(
   // if is plain text
   else if (types.includes("text/plain")) {
     const text = clipboardData.getData("text/plain");
-    if (isValidURL(text)) return buildURLItem(text);
+    if (isValidURL(text)) return await buildURLItem(text);
   }
 
   return {
