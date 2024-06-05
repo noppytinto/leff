@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { isValidURL, maybeAddScheme } from "../utils/utils";
 import debounce from "lodash/debounce";
 import {
   buildURLItem,
@@ -12,16 +11,10 @@ import {
 } from "../entities/item";
 import Image from "next/image";
 import buildPastedItem from "../entities/buildPastedItem";
+import { getPageMetadata, PageMetadata } from "../services/pageMetaService";
 // import styles from "./App.module.scss";
 
-type PageMetadata = {
-  title: string;
-  description: string;
-  image: string;
-  favicon: string;
-  error?: boolean;
-  errorMessage?: string;
-};
+const DEFAULT_DEBOUNCE = 1000;
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -36,80 +29,90 @@ export default function Home() {
   const urlPreviewImageRef = useRef<HTMLImageElement>(null);
   const [pageMetadataIsLoading, setPageMetadataIsLoading] =
     React.useState(false);
-
-  function handleOnErrorPagePreviewImage(
-    event: React.SyntheticEvent<HTMLImageElement, Event>,
-  ) {
-    console.log("fffffffffffffffffffffffffffffffffffffffffff error:", event);
-    // urlPreviewImageRef.current.src = pageMetadata.favicon;
-
-    // detect network error using next
-
-    urlPreviewImageRef.current.style.display = "none";
-  }
+  const [inputValue, setInputValue] = React.useState<string>("");
 
   // fetch url metadata
   useEffect(() => {
+    const ac = new AbortController();
+
     if (!item) return;
     if (item.type !== "url") return;
 
     setPageMetadata(null);
     setErrorMessage("");
+    setPageMetadataIsLoading(true);
 
     const url = (item as URLItem).fullUrl;
-    console.log("fffffffffffffffffffffffffffffffffffffffffff url:", url);
 
-    setPageMetadataIsLoading(true);
-    const apiUrl = `/api/page-meta?url=${url}`;
-    fetch(apiUrl)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("fffffffffffffffffffffffffffffffffffffffffff data:", data);
-        if (data.error) {
-          setErrorMessage("Error fetching page metadata");
-          setPageMetadataIsLoading(false);
-          return;
-        }
+    (async () => {
+      const data = await getPageMetadata(url);
+      if (ac.signal.aborted) return;
 
+      console.log("fffffffffffffffffffffffffffffffffffffffffff data:", data);
+      if (data.hasFailed) {
+        setErrorMessage("Error fetching page metadata: " + data.errorMessage);
         setPageMetadataIsLoading(false);
+        return;
+      }
 
-        setPageMetadata({
-          title: data.title,
-          description: data.description,
-          image: data.image,
-          favicon: data.favicon,
-          error: data.error,
-        });
+      setPageMetadata({
+        title: data.title,
+        description: data.description,
+        image: data.image,
+        favicon: data.favicon,
       });
+      setPageMetadataIsLoading(false);
+    })();
+
+    return () => {
+      ac.abort();
+    };
   }, [JSON.stringify(item)]);
 
-  // ============================================
-  // FUNCTIONS
-  // ============================================
-  function parseUrl(givenUrl: string) {
-    setErrorMessage("");
+  useEffect(() => {
+    console.log("fffffffffffffffffffffffffffffffffffffffffff myVar:");
+    const ac = new AbortController();
 
-    if (!givenUrl) {
+    if (!inputValue) {
       setItem(null);
       return;
     }
 
-    let url = givenUrl;
+    console.log("fffffffffffffffffffffffffffffffffffffffffff AFTER:");
 
-    const isValid = isValidURL(url);
-    if (!isValid) {
-      setErrorMessage("Please enter a valid URL(must be remote)");
-      setItem(null);
-    } else {
-      url = maybeAddScheme(url);
-      const urlItem = buildURLItem(url);
-      setItem(urlItem);
-    }
+    (async () => {
+      const urlItemResponse = await buildURLItem(inputValue);
+
+      console.log(
+        "fffffffffffffffffffffffffffffffffffffffffff ac.signal.aborted:",
+        ac.signal.aborted,
+      );
+
+      if (ac.signal.aborted) return;
+
+      if (urlItemResponse.hasFailed) {
+        setErrorMessage(
+          "Error fetching URL metadata: " + urlItemResponse.errorMessage,
+        );
+        setItem(null);
+        return;
+      }
+
+      setItem(urlItemResponse);
+    })();
+
+    return () => {
+      ac.abort();
+    };
+  }, [inputValue]);
+
+  // ============================================
+  // FUNCTIONS
+  // ============================================
+  async function handleInputChange(inputUrl: string | null) {
+    setErrorMessage("");
+    setInputValue(inputUrl);
   }
-
-  // function onFormSubmit(event: React.FormEvent<HTMLFormElement>) {
-  //   event.preventDefault();
-  // }
 
   function handleOnPaste(event: React.ClipboardEvent<HTMLInputElement>) {
     pasteFlag.current = true;
@@ -133,6 +136,17 @@ export default function Home() {
     setItem(null);
   }
 
+  function handleOnErrorPagePreviewImage(
+    event: React.SyntheticEvent<HTMLImageElement, Event>,
+  ) {
+    console.log("fffffffffffffffffffffffffffffffffffffffffff error:", event);
+    // urlPreviewImageRef.current.src = pageMetadata.favicon;
+
+    // detect network error using next
+
+    urlPreviewImageRef.current.style.display = "none";
+  }
+
   // ============================================
   // JSX
   // ============================================
@@ -151,7 +165,7 @@ export default function Home() {
           name="input"
           type="text"
           className=" h-12 w-96 rounded-full border border-solid border-gray-100 px-4 py-2 shadow-md"
-          onChange={debounce((event) => {
+          onChange={debounce(async (event) => {
             // paste event has higher priority,
             // so we need to prevent the change event
             // from being triggered
@@ -160,8 +174,8 @@ export default function Home() {
               return;
             }
 
-            parseUrl(event.target.value);
-          }, 800)}
+            await handleInputChange(event.target.value);
+          }, DEFAULT_DEBOUNCE)}
           placeholder="Type or Paste here..."
           onPaste={handleOnPaste}
           ref={inputRef}

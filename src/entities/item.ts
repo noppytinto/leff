@@ -1,16 +1,6 @@
 import { formatDateToISO8601 } from "../utils/dates";
-import { isURLSecure, maybeAddScheme } from "../utils/utils";
-
-export type URLData = {
-  fullUrl: string;
-  scheme: string;
-  host: string;
-  port: string;
-  path: string;
-  query: string;
-  fragment: string;
-  isSecure: boolean;
-};
+import { getURLMetadata, URLMetadata } from "../services/urlMetaService";
+import { BaseApiResponse } from "../types/response";
 
 export type ItemType =
   | "text"
@@ -44,7 +34,7 @@ export type TextItem = BaseItem & {
   text: string;
 };
 
-export type URLItem = TextItem & URLData;
+export type URLItem = BaseItem & URLMetadata;
 
 // ======================================================
 // UTILS
@@ -78,31 +68,27 @@ export function buildImageItem(file: File): ImageItem {
   };
 }
 
-export function buildURLItem(url: string): URLItem {
-  let urlData: URL = undefined;
-  try {
-    url = maybeAddScheme(url);
-    urlData = new URL(url);
-  } catch (error) {
-    console.error("Invalid URL", error);
+export async function buildURLItem(
+  url: string,
+): Promise<URLItem & BaseApiResponse> {
+  const urlMetadata = await getURLMetadata(url);
+
+  if (urlMetadata.hasFailed) {
+    return {
+      ...urlMetadata,
+      type: "unknown",
+      rawMimeType: "text/plain",
+    };
   }
 
   return {
+    ...urlMetadata,
     type: isFileUrl(url) ? "fileUrl" : "url",
-    text: url,
     rawMimeType: "text/plain",
-    fullUrl: urlData?.href,
-    scheme: urlData?.protocol?.replace(":", ""),
-    host: urlData?.hostname,
-    port: urlData?.port,
-    path: urlData?.pathname,
-    query: urlData?.search,
-    fragment: urlData?.hash,
-    isSecure: isURLSecure(url),
   };
 }
 
-function isFileUrl(url) {
+function isFileUrl(url: string) {
   const imagePattern = /\.(jpg|jpeg|png|gif|bmp|webp|svg|ico|tiff|tif|psd)$/i;
   const documentPattern =
     /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|odg|txt|csv|rtf|tex)$/i;

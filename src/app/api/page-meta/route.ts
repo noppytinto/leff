@@ -1,21 +1,38 @@
 import { NextRequest } from "next/server";
 import { load, CheerioAPI } from "cheerio";
-import { isValidURL } from "../../../utils/utils";
+import { isValidURL, makeURLSafe } from "../../../utils/utils";
 import jsdom from "jsdom";
-import { Readability } from '@mozilla/readability';
+import { Readability } from "@mozilla/readability";
+import { sanitizeUrl } from "../../../utils/url";
+import { BaseApiResponse } from "../../../types/response";
+import { PageMetadata } from "../../../services/pageMetaService";
 // import puppeteer from "puppeteer";
 
-
+export type PageMetaResponse = BaseApiResponse & PageMetadata;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const sanitizedUrl = sanitizeUrl(searchParams.get("url"));
-  const baseUrl = new URL(sanitizedUrl).origin;
+  const urlParam = searchParams.get("url");
+
+  if (!isValidURL(urlParam)) {
+    return Response.json({
+      title: "",
+      favicon: "",
+      hasFailed: true,
+      errorMessage: "Invalid URL",
+    } satisfies PageMetaResponse);
+  }
+
+  const originalUrl = sanitizeUrl(urlParam);
+  const safeUrl = makeURLSafe(originalUrl);
+  const baseUrl = new URL(safeUrl).origin;
 
   try {
-    const pageData = await fetch(sanitizedUrl, {
+    const pageData = await fetch(safeUrl, {
       headers: {
         "Content-Type": "text/html",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
       },
     });
 
@@ -26,13 +43,11 @@ export async function GET(req: NextRequest) {
       );
 
       return Response.json({
-        title: "",
-        description: "",
-        image: "",
+        title: originalUrl,
         favicon: getFaviconSrc(baseUrl),
-        error: true,
+        hasFailed: true,
         errorMessage: pageData.statusText,
-      });
+      } satisfies PageMetaResponse);
     }
 
     // get page metadata using cheerio
@@ -44,9 +59,7 @@ export async function GET(req: NextRequest) {
       description: getDescription($),
       image: getImageSrc($, baseUrl),
       favicon: getFaviconSrc(baseUrl),
-      html,
-      error: false,
-    });
+    } satisfies PageMetaResponse);
   } catch (error) {
     console.error(
       "fffffffffffffffffffffffffffffffffffffffffff ERROR fetching page metadata:",
@@ -54,13 +67,11 @@ export async function GET(req: NextRequest) {
     );
 
     return Response.json({
-      title: "",
-      description: "",
-      image: "",
+      title: originalUrl,
       favicon: getFaviconSrc(baseUrl),
-      error: true,
+      hasFailed: true,
       errorMessage: String(error),
-    });
+    } satisfies PageMetaResponse);
   }
 }
 
@@ -150,37 +161,3 @@ function getDescription($: CheerioAPI) {
 
   return finalDescription || "";
 }
-
-function maybeAddUrlDomain(url: string, domain: string) {
-  // if url has no domain, add domain
-  // e.g. /about -> https://example.com/about
-  if (url.startsWith("/")) {
-    return domain + url;
-  }
-
-  return url;
-}
-
-function maybeAddBaseUrl(url: string, baseUrl: string) {
-  // if url has no domain, add domain
-  // e.g. /about -> https://example.com/about
-  if (url.startsWith("/")) {
-    return baseUrl + url;
-  }
-
-  return url;
-}
-
-function sanitizeUrl(url: string) {
-  // trim and remove trailing slash
-  const trimmedUrl = new URL(url).href;
-  return trimmedUrl.replace(/\/$/, "");
-}
-
-// function maybeDecodeUrl(url: string) {
-//   try {
-//     return decodeURIComponent(url);
-//   } catch (error) {
-//     return url;
-//   }
-// }

@@ -28,14 +28,8 @@ const urlPattern2 = new RegExp(
 );
 
 export function isValidURL(url: string) {
-  if (!url) {
-    return false;
-  }
-
-  if (!url.match(urlPattern)) {
-    return false;
-  }
-
+  if (!url) return false;
+  if (!url.match(urlPattern)) return false;
   return url.match(urlPattern)[0] === url;
 }
 
@@ -58,4 +52,9 @@ function hasScheme(url: string) {
  */
 export function maybeAddScheme(url: string) {
   return hasScheme(url) ? url : `https://${url}`;
+}
+
+export function makeURLSafe(url: string) {
+  const internalURl = maybeAddScheme(url);
+  return internalURl.replace("http://", "https://");
 }
