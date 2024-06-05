@@ -41,6 +41,8 @@ function buildFileItem(
   else if (types.includes("Files")) {
     const file = clipboardData.files[0];
 
+    console.log("ffffffffffffffffffffffffff type: ", types);
+
     if (file.type.includes("image/")) return buildImageItem(file);
     if (DOCUMENT_MIMES.includes(file.type)) return buildDocumentItem(file);
   }

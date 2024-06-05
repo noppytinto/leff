@@ -55,9 +55,9 @@ export function useGetPageMetadata(url: string | null) {
       }
     })();
 
-    return () => {
-      ac.abort();
-    };
+    // return () => {
+    //   ac.abort();
+    // };
   }, [url]);
 
   console.log(
@@ -65,9 +65,14 @@ export function useGetPageMetadata(url: string | null) {
     metadata,
   );
 
+  function resetMetadata() {
+    setMetadata(null);
+  }
+
   return {
     metadata,
     isLoading,
     errorMessage,
+    resetMetadata,
   };
 }

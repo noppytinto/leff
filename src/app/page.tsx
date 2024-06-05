@@ -36,6 +36,7 @@ export default function Home() {
     metadata: pageMetadata,
     isLoading: pageMetadataIsLoading,
     errorMessage: pageMetadataError,
+    resetMetadata: resetPageMetadata,
   } = useGetPageMetadata(inputValue);
 
   const {
@@ -51,6 +52,7 @@ export default function Home() {
    * build URL item
    */
   useEffect(() => {
+    setFileItem(null);
     if (!urlMetadata) {
       setUrlItem(null);
       return;
@@ -73,15 +75,21 @@ export default function Home() {
     if (!clipboardData) return;
 
     const types = clipboardData.types;
+    console.log("fffffffffffffffffffffffffffffff my funcking types:", types);
     setErrorFileMessage("");
 
     // if it's ONLY text/plain
-    if (types.includes("text/plain") && types.length === 1) {
+    if (
+      types.length <= 0 ||
+      (types.includes("text/plain") && types.length === 1)
+    ) {
+      console.log("fffffffffffffffffffffffffffffff text/plain");
       const text = clipboardData.getData("text/plain");
-      if (isValidURL(text)) buildURLItem(urlMetadata);
+      return setInputValue(text);
     }
 
     // if it's a file (image or document)
+    resetPageMetadata();
     const item = buildFileItem(clipboardData);
 
     if (item.type !== "unknown") {
@@ -92,13 +100,14 @@ export default function Home() {
       "Please enter a valid URL (must be remote) or a valid document file",
     );
     setFileItem(null);
+    setUrlItem(null);
     setClipboardData(null);
   }, [clipboardData, urlMetadata]);
 
   // ============================================
   // FUNCTIONS
   // ============================================
-  async function handleInputChange(inputUrl: string | null) {
+  function handleInputChange(inputUrl: string | null) {
     setErrorFileMessage("");
     // setFileItem(null);
     // setUrlItem(null);
@@ -121,10 +130,6 @@ export default function Home() {
     event: React.SyntheticEvent<HTMLImageElement, Event>,
   ) {
     console.log("fffffffffffffffffffffffffffffffffffffffffff error:", event);
-    // urlPreviewImageRef.current.src = pageMetadata.favicon;
-
-    // detect network error using next
-
     urlPreviewImageRef.current.style.display = "none";
   }
 
@@ -155,7 +160,7 @@ export default function Home() {
               return;
             }
 
-            await handleInputChange(event.target.value);
+            handleInputChange(event.target.value);
           }, DEFAULT_DEBOUNCE)}
           placeholder="Type or Paste here..."
           onPaste={handleOnPaste}
@@ -301,7 +306,7 @@ export default function Home() {
       )}
 
       {/*=============================================== IMAGE CARD*/}
-      {fileItem && fileItem.type === "image" && (
+      {!pageMetadata && fileItem && fileItem.type === "image" && (
         <div className=" relative h-[150px] w-1/4">
           <Image
             src={(fileItem as ImageItem).src}
@@ -313,13 +318,13 @@ export default function Home() {
       )}
 
       {/*=============================================== DOCUMENT CARD*/}
-      {fileItem && fileItem.type === "document" && (
+      {!pageMetadata && fileItem && fileItem.type === "document" && (
         <div className=" justify-censter flex flex-col items-center gap-2 p-4">
           <div className="relative flex h-[200px] w-[150px] flex-col items-center justify-center gap-2 rounded-md rounded-tr-3xl border border-solid border-gray-300 p-4">
             <p className="absolute -left-[.5em] top-4 rounded-md rounded-bl-md border border-gray-100 bg-gray-100 px-4 py-1 text-sm font-bold text-gray-600 shadow-md">
               .{(fileItem as FileItem).extension}
             </p>
-            <p className="w-full text-wrap text-center text-sm font-bold text-gray-500">
+            <p className="w-full truncate text-wrap text-center text-sm font-bold text-gray-500">
               {(fileItem as FileItem).name}
             </p>
           </div>
@@ -339,7 +344,7 @@ export default function Home() {
           <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-gray-900"></div>
         </div>
       )}
-      {urlItem && (
+      {!fileItem && urlItem && (
         <div className="flex w-full flex-col items-center justify-center gap-2">
           <p>metadata:</p>
           <pre className="w-full overflow-auto rounded-md border border-solid border-gray-300 bg-slate-100 p-4">

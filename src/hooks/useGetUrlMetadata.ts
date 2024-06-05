@@ -58,9 +58,9 @@ export function useGetUrlMetadata(url: string | null) {
       setIsLoading(false);
     })();
 
-    return () => {
-      ac.abort();
-    };
+    // return () => {
+    //   ac.abort();
+    // };
   }, [url]);
 
   return { metadata, isLoading, errorMessage };
