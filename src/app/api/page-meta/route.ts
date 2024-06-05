@@ -1,57 +1,44 @@
 import { NextRequest } from "next/server";
 import { load, CheerioAPI } from "cheerio";
-import { isValidURL, makeURLSafe } from "../../../utils/utils";
+import { isValidURL, makeURLSafe, maybeAddScheme } from "../../../utils/utils";
 import jsdom from "jsdom";
 import { Readability } from "@mozilla/readability";
 import { sanitizeUrl } from "../../../utils/url";
 import { BaseApiResponse } from "../../../types/response";
-import { PageMetadata } from "../../../services/pageMetaService";
+import { PageMetadata } from "../../../types/pageMetadata";
 // import puppeteer from "puppeteer";
 
 export type PageMetaResponse = BaseApiResponse & PageMetadata;
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
+  const searchParams = new URL(req.url).searchParams;
   const urlParam = searchParams.get("url");
 
   if (!isValidURL(urlParam)) {
-    return Response.json({
-      title: "",
-      favicon: "",
-      hasFailed: true,
-      errorMessage: "Invalid URL",
-    } satisfies PageMetaResponse);
+    return new Response("Invalid URL", { status: 400 });
   }
 
-  const originalUrl = sanitizeUrl(urlParam);
+  // TODO: fix double call maybeAddScheme in sanitizeUrl and makeURLSafe
+  const originalUrl = sanitizeUrl(maybeAddScheme(urlParam));
   const safeUrl = makeURLSafe(originalUrl);
   const baseUrl = new URL(safeUrl).origin;
 
   try {
-    const pageData = await fetch(safeUrl, {
+    const response = await fetch(safeUrl, {
       headers: {
-        "Content-Type": "text/html",
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
       },
     });
 
-    if (!pageData.ok) {
-      console.error(
-        "fffffffffffffffffffffffffffffffffffffffffff ERROR fetching page metadata:",
-        pageData.statusText,
-      );
-
-      return Response.json({
-        title: originalUrl,
-        favicon: getFaviconSrc(baseUrl),
-        hasFailed: true,
-        errorMessage: pageData.statusText,
-      } satisfies PageMetaResponse);
+    if (!response.ok) {
+      return new Response(String(response.statusText), {
+        status: response.status,
+      });
     }
 
     // get page metadata using cheerio
-    const html = await pageData.text();
+    const html = await response.text();
     const $ = load(html);
 
     return Response.json({
@@ -66,12 +53,7 @@ export async function GET(req: NextRequest) {
       error,
     );
 
-    return Response.json({
-      title: originalUrl,
-      favicon: getFaviconSrc(baseUrl),
-      hasFailed: true,
-      errorMessage: String(error),
-    } satisfies PageMetaResponse);
+    return new Response(String(error), { status: 400 });
   }
 }
 
@@ -133,8 +115,6 @@ function getFaviconSrc(baseUrl: string) {
   //   const googleFavicon = "https://www.google.com/s2/favicons?domain=" + baseUrl;
   //   return googleFavicon;
   // }
-
-  console.log("fffffffffffffffffffffffffffffffffffffffffff baseUrl:", baseUrl);
 
   return new URL("https://www.google.com/s2/favicons?domain=" + baseUrl).href;
 }

@@ -1,6 +1,6 @@
 import { formatDateToISO8601 } from "../utils/dates";
-import { getURLMetadata, URLMetadata } from "../services/urlMetaService";
-import { BaseApiResponse } from "../types/response";
+import { URLMetadataResponse } from "../app/api/url-meta/route";
+import { URLMetadata } from "../types/urlMetadata";
 
 export type ItemType =
   | "text"
@@ -68,11 +68,7 @@ export function buildImageItem(file: File): ImageItem {
   };
 }
 
-export async function buildURLItem(
-  url: string,
-): Promise<URLItem & BaseApiResponse> {
-  const urlMetadata = await getURLMetadata(url);
-
+export function buildURLItem(urlMetadata: URLMetadataResponse): URLItem {
   if (urlMetadata.hasFailed) {
     return {
       ...urlMetadata,
@@ -83,7 +79,7 @@ export async function buildURLItem(
 
   return {
     ...urlMetadata,
-    type: isFileUrl(url) ? "fileUrl" : "url",
+    type: isFileUrl(urlMetadata.fullUrl) ? "fileUrl" : "url",
     rawMimeType: "text/plain",
   };
 }

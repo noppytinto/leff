@@ -1,47 +1,55 @@
 import { NextRequest } from "next/server";
-import { isValidURL, maybeAddScheme } from "../../../utils/utils";
+import { isURLSecure, isValidURL, maybeAddScheme } from "../../../utils/utils";
 import { sanitizeUrl } from "../../../utils/url";
-import {
-  buildURLMetadata,
-  URLMetadata,
-} from "../../../services/urlMetaService";
 import { BaseApiResponse } from "../../../types/response";
+import { URLMetadata } from "../../../types/urlMetadata";
 
 export type URLMetadataResponse = BaseApiResponse & URLMetadata;
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
+  const searchParams = new URL(req.url).searchParams;
   const urlParam = searchParams.get("url");
 
   if (!isValidURL(urlParam)) {
-    return Response.json({
-      fullUrl: urlParam,
-      scheme: "",
-      path: "",
-      host: "",
-      hasFailed: true,
-      errorMessage: "Invalid URL",
-      isSecure: false,
-    } satisfies URLMetadataResponse);
+    return new Response("Invalid URL", { status: 400 });
   }
-  const sanitizedUrl = sanitizeUrl(maybeAddScheme(urlParam));
-  const baseUrl = new URL(sanitizedUrl).origin;
 
+  const originalUrl = sanitizeUrl(maybeAddScheme(urlParam));
+  const baseUrl = new URL(originalUrl).origin;
   const urlMetadata = buildURLMetadata(baseUrl);
 
   if (!urlMetadata) {
-    return Response.json({
-      fullUrl: sanitizedUrl,
-      scheme: "",
-      path: "",
-      host: "",
-      hasFailed: true,
-      errorMessage: "Invalid URL",
-      isSecure: false,
-    } satisfies URLMetadataResponse);
+    return new Response("Invalid URL", { status: 400 });
   }
 
   return Response.json({
     ...urlMetadata,
   } satisfies URLMetadataResponse);
+}
+
+/**
+ * Builds URL metadata from a given URL
+ *
+ * @param url URL to build metadata from
+ * @returns URL metadata, or `null` if the URL is invalid
+ */
+function buildURLMetadata(url: string): URLMetadata | null {
+  let urlData: URL;
+  try {
+    url = maybeAddScheme(url);
+    urlData = new URL(url);
+  } catch (error) {
+    return null;
+  }
+
+  return {
+    fullUrl: urlData?.href,
+    scheme: urlData?.protocol?.replace(":", ""),
+    host: urlData?.hostname,
+    port: urlData?.port,
+    path: urlData?.pathname,
+    query: urlData?.search,
+    fragment: urlData?.hash,
+    isSecure: isURLSecure(url),
+  };
 }

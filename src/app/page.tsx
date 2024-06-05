@@ -10,134 +10,98 @@ import {
   URLItem,
 } from "../entities/item";
 import Image from "next/image";
-import buildPastedItem from "../entities/buildPastedItem";
-import { getPageMetadata, PageMetadata } from "../services/pageMetaService";
+import buildFileItem from "../entities/buildFileItem";
+import { useGetPageMetadata } from "../hooks/useGetPageMetadata";
+import { useGetUrlMetadata } from "../hooks/useGetUrlMetadata";
+import { isValidURL } from "../utils/utils";
 // import styles from "./App.module.scss";
 
 const DEFAULT_DEBOUNCE = 1000;
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [item, setItem] = React.useState<FileItem | ImageItem | URLItem | null>(
+  const urlPreviewImageRef = useRef<HTMLImageElement>(null);
+  const [fileItem, setFileItem] = React.useState<FileItem | ImageItem | null>(
     null,
   );
   const pasteFlag = useRef(false);
-  const [errorMessage, setErrorMessage] = React.useState("");
-  const [pageMetadata, setPageMetadata] = React.useState<PageMetadata | null>(
-    null,
-  );
-  const urlPreviewImageRef = useRef<HTMLImageElement>(null);
-  const [pageMetadataIsLoading, setPageMetadataIsLoading] =
-    React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>("");
   const [clipboardData, setClipboardData] = React.useState<DataTransfer | null>(
     null,
   );
+  const [errorFileMessage, setErrorFileMessage] = React.useState<string>("");
+  const [urlItem, setUrlItem] = React.useState<URLItem | null>(null);
 
-  // fetch url metadata
+  const {
+    metadata: pageMetadata,
+    isLoading: pageMetadataIsLoading,
+    errorMessage: pageMetadataError,
+  } = useGetPageMetadata(inputValue);
+
+  const {
+    metadata: urlMetadata,
+    isLoading: urlMetadataIsLoading,
+    errorMessage: urlMetadataError,
+  } = useGetUrlMetadata(inputValue);
+
+  // ============================================
+  // SIDE EFFECTS
+  // ============================================
+  /**
+   * build URL item
+   */
   useEffect(() => {
-    const ac = new AbortController();
-
-    if (!item) return;
-    if (item.type !== "url") return;
-
-    setPageMetadata(null);
-    setErrorMessage("");
-    setPageMetadataIsLoading(true);
-
-    const url = (item as URLItem).fullUrl;
-
-    (async () => {
-      const data = await getPageMetadata(url);
-      if (ac.signal.aborted) return;
-
-      console.log("fffffffffffffffffffffffffffffffffffffffffff data:", data);
-      if (data.hasFailed) {
-        setErrorMessage("Error fetching page metadata: " + data.errorMessage);
-        setPageMetadataIsLoading(false);
-        return;
-      }
-
-      setPageMetadata({
-        title: data.title,
-        description: data.description,
-        image: data.image,
-        favicon: data.favicon,
-      });
-      setPageMetadataIsLoading(false);
-    })();
-
-    return () => {
-      ac.abort();
-    };
-  }, [JSON.stringify(item)]);
-
-  useEffect(() => {
-    console.log("fffffffffffffffffffffffffffffffffffffffffff myVar:");
-    const ac = new AbortController();
-
-    if (!inputValue) {
-      setItem(null);
+    if (!urlMetadata) {
+      setUrlItem(null);
       return;
     }
 
-    console.log("fffffffffffffffffffffffffffffffffffffffffff AFTER:");
+    const urlItem = buildURLItem(urlMetadata);
 
-    (async () => {
-      const urlItemResponse = await buildURLItem(inputValue);
+    if (urlItem.type === "unknown") {
+      setUrlItem(null);
+      return;
+    }
 
-      console.log(
-        "fffffffffffffffffffffffffffffffffffffffffff ac.signal.aborted:",
-        ac.signal.aborted,
-      );
+    setUrlItem(urlItem);
+  }, [urlMetadata]);
 
-      if (ac.signal.aborted) return;
-
-      if (urlItemResponse.hasFailed) {
-        setErrorMessage(
-          "Error fetching URL metadata: " + urlItemResponse.errorMessage,
-        );
-        setItem(null);
-        return;
-      }
-
-      setItem(urlItemResponse);
-    })();
-
-    return () => {
-      ac.abort();
-    };
-  }, [inputValue]);
-
+  /**
+   * Build pasted item
+   */
   useEffect(() => {
-    const ac = new AbortController();
-
     if (!clipboardData) return;
 
-    (async () => {
-      const item = await buildPastedItem(clipboardData);
-      if (ac.signal.aborted) return;
+    const types = clipboardData.types;
+    setErrorFileMessage("");
 
-      if (item.type !== "unknown") {
-        return setItem(item);
-      }
+    // if it's ONLY text/plain
+    if (types.includes("text/plain") && types.length === 1) {
+      const text = clipboardData.getData("text/plain");
+      if (isValidURL(text)) buildURLItem(urlMetadata);
+    }
 
-      setErrorMessage(
-        "Please enter a valid URL (must be remote) or a valid document file",
-      );
-      setItem(null);
-    })();
+    // if it's a file (image or document)
+    const item = buildFileItem(clipboardData);
 
-    return () => {
-      ac.abort();
-    };
-  }, [JSON.stringify(clipboardData)]);
+    if (item.type !== "unknown") {
+      return setFileItem(item);
+    }
+
+    setErrorFileMessage(
+      "Please enter a valid URL (must be remote) or a valid document file",
+    );
+    setFileItem(null);
+    setClipboardData(null);
+  }, [clipboardData, urlMetadata]);
 
   // ============================================
   // FUNCTIONS
   // ============================================
   async function handleInputChange(inputUrl: string | null) {
-    setErrorMessage("");
+    setErrorFileMessage("");
+    // setFileItem(null);
+    // setUrlItem(null);
     setInputValue(inputUrl);
   }
 
@@ -147,11 +111,10 @@ export default function Home() {
     // TODO: fix image broken after paste 2nd time
     if (urlPreviewImageRef && urlPreviewImageRef.current)
       urlPreviewImageRef.current.style.display = "block";
-    setErrorMessage("");
+    setErrorFileMessage("");
     inputRef.current.value = "";
 
-    const clipboardData = event.clipboardData;
-    setClipboardData(clipboardData);
+    setClipboardData(event.clipboardData);
   }
 
   function handleOnErrorPagePreviewImage(
@@ -199,9 +162,22 @@ export default function Home() {
           ref={inputRef}
         />
 
-        {errorMessage && (
+        {errorFileMessage && (
           <p className="text-red-500">
-            {errorMessage || "Please enter a valid URL (must be remote)"}
+            {errorFileMessage ||
+              "Please enter a valid URL (must be remote) or a valid document file"}
+          </p>
+        )}
+
+        {urlMetadataError && (
+          <p className="text-red-500">
+            {urlMetadataError || "Please enter a valid URL (must be remote)"}
+          </p>
+        )}
+
+        {pageMetadataError && (
+          <p className="text-red-500">
+            {pageMetadataError || "Error fetching page metadata"}
           </p>
         )}
 
@@ -282,8 +258,8 @@ export default function Home() {
         </div>
       </div> */}
 
-      {/*=============================================== URL CARD*/}
-      {item && item.type === "url" && (
+      {/*=============================================== PAGE CARD*/}
+      {urlItem && urlItem.type === "url" && (
         <div className="flex flex-col items-center justify-center gap-2">
           {pageMetadataIsLoading && (
             <div className="flex items-center justify-center gap-2">
@@ -299,15 +275,15 @@ export default function Home() {
                       loader={() => pageMetadata.favicon}
                       src={pageMetadata.favicon}
                       alt="favicon"
-                      className="min-h-[32px] min-w-[32px] rounded-sm object-contain"
-                      width={32}
-                      height={32}
+                      className="min-h-[20px] min-w-[20px] rounded-sm object-contain"
+                      width={20}
+                      height={20}
                     />
-                    <p className="line-clamp-2 text-lg font-bold">
+                    <p className="line-clamp-1 text-lg font-bold">
                       {pageMetadata.title}
                     </p>
                   </div>
-                  <p className=" line-clamp-4 text-wrap text-sm">
+                  <p className=" line-clamp-3 text-wrap text-sm">
                     {pageMetadata.description}
                   </p>
                 </div>
@@ -325,10 +301,10 @@ export default function Home() {
       )}
 
       {/*=============================================== IMAGE CARD*/}
-      {item && item.type === "image" && (
+      {fileItem && fileItem.type === "image" && (
         <div className=" relative h-[150px] w-1/4">
           <Image
-            src={(item as ImageItem).src}
+            src={(fileItem as ImageItem).src}
             alt="image"
             fill
             objectFit="contain"
@@ -337,18 +313,18 @@ export default function Home() {
       )}
 
       {/*=============================================== DOCUMENT CARD*/}
-      {item && item.type === "document" && (
+      {fileItem && fileItem.type === "document" && (
         <div className=" justify-censter flex flex-col items-center gap-2 p-4">
           <div className="relative flex h-[200px] w-[150px] flex-col items-center justify-center gap-2 rounded-md rounded-tr-3xl border border-solid border-gray-300 p-4">
             <p className="absolute -left-[.5em] top-4 rounded-md rounded-bl-md border border-gray-100 bg-gray-100 px-4 py-1 text-sm font-bold text-gray-600 shadow-md">
-              .{(item as FileItem).extension}
+              .{(fileItem as FileItem).extension}
             </p>
             <p className="w-full text-wrap text-center text-sm font-bold text-gray-500">
-              {(item as FileItem).name}
+              {(fileItem as FileItem).name}
             </p>
           </div>
           <a
-            href={(item as DocumentItem).src}
+            href={(fileItem as DocumentItem).src}
             target="_blank"
             className="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
           >
@@ -358,11 +334,16 @@ export default function Home() {
       )}
 
       {/*=============================================== METADATA CARD*/}
-      {item && (
+      {urlMetadataIsLoading && (
+        <div className="flex items-center justify-center gap-2">
+          <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-gray-900"></div>
+        </div>
+      )}
+      {urlItem && (
         <div className="flex w-full flex-col items-center justify-center gap-2">
           <p>metadata:</p>
           <pre className="w-full overflow-auto rounded-md border border-solid border-gray-300 bg-slate-100 p-4">
-            {item && JSON.stringify(item, null, 2)}
+            {urlItem && JSON.stringify(urlItem, null, 2)}
           </pre>
         </div>
       )}
