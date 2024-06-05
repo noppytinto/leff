@@ -273,32 +273,33 @@ export default function Home() {
           )}
           {pageMetadata && (
             <div className="flex h-[200px] max-w-[500px] flex-col items-center justify-center gap-2">
-              <div className="flex items-center justify-center gap-4 rounded-md border border-solid border-gray-300 p-4">
-                <div className="flex flex-grow-[3] flex-col items-start justify-center gap-2">
-                  <div className="flex items-center justify-center gap-2">
-                    <Image
-                      loader={() => pageMetadata.favicon}
-                      src={pageMetadata.favicon}
-                      alt="favicon"
-                      className="min-h-[20px] min-w-[20px] rounded-sm object-contain"
-                      width={20}
-                      height={20}
-                    />
-                    <p className="line-clamp-1 text-lg font-bold">
-                      {pageMetadata.title}
-                    </p>
-                  </div>
-                  <p className=" line-clamp-3 text-wrap text-sm">
-                    {pageMetadata.description}
+              <div className="flex flex-col justify-center gap-4 rounded-md border border-solid border-gray-300 p-4">
+                <div className="flex items-center gap-2">
+                  <Image
+                    loader={() => pageMetadata.favicon}
+                    src={pageMetadata.favicon}
+                    alt="favicon"
+                    className="min-h-[20px] min-w-[20px] rounded-sm object-contain"
+                    width={20}
+                    height={20}
+                  />
+                  <p className="line-clamp-1 text-lg font-bold">
+                    {pageMetadata.title}
                   </p>
                 </div>
-                <img
-                  src={pageMetadata.image}
-                  alt="image"
-                  ref={urlPreviewImageRef}
-                  className="max-w-[120px] self-stretch rounded-md object-cover shadow-md"
-                  onError={handleOnErrorPagePreviewImage}
-                />
+
+                <div className="flex items-center justify-between gap-2">
+                  <p className=" line-clamp-4 self-start text-wrap text-sm">
+                    {pageMetadata.description}
+                  </p>
+                  <img
+                    src={pageMetadata.image}
+                    alt="image"
+                    ref={urlPreviewImageRef}
+                    className="max-w-[120px] self-stretch rounded-md object-cover shadow-md"
+                    onError={handleOnErrorPagePreviewImage}
+                  />
+                </div>
               </div>
             </div>
           )}
