@@ -7,6 +7,7 @@ export function useGetPageMetadata(url: string | null) {
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
   const [metadata, setMetadata] = React.useState<PageMetadata | null>(null);
+  const [isError, setIsError] = React.useState(false);
 
   // fetch page metadata
   useEffect(() => {
@@ -15,6 +16,7 @@ export function useGetPageMetadata(url: string | null) {
     if (!url) return;
 
     setMetadata(null);
+    setIsError(false);
     setErrorMessage("");
 
     (async () => {
@@ -27,6 +29,7 @@ export function useGetPageMetadata(url: string | null) {
         if (ac.signal.aborted) return;
 
         if (!response.ok) {
+          setIsError(true);
           setErrorMessage(
             "Error fetching page metadata: " + response.statusText,
           );
@@ -36,6 +39,7 @@ export function useGetPageMetadata(url: string | null) {
 
         const data = await response.json();
         if (data.hasFailed) {
+          setIsError(true);
           setErrorMessage("Error fetching page metadata: " + data.errorMessage);
           setIsLoading(false);
           return;
@@ -50,20 +54,17 @@ export function useGetPageMetadata(url: string | null) {
 
         setIsLoading(false);
       } catch (error) {
+        setIsError(true);
         setErrorMessage("Error fetching page metadata: " + String(error));
         setIsLoading(false);
       }
     })();
 
+    // TODO: investigate if this is necessary, at the moment causes a an unusual abort
     // return () => {
     //   ac.abort();
     // };
   }, [url]);
-
-  console.log(
-    "fffffffffffffffffffffffffffffffffffffffffff metadata:",
-    metadata,
-  );
 
   function resetMetadata() {
     setMetadata(null);
@@ -72,6 +73,7 @@ export function useGetPageMetadata(url: string | null) {
   return {
     metadata,
     isLoading,
+    isError,
     errorMessage,
     resetMetadata,
   };

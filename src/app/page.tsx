@@ -3,24 +3,30 @@
 import React, { useEffect, useRef } from "react";
 import debounce from "lodash/debounce";
 import {
+  buildDocumentItem,
+  buildImageItem,
   buildURLItem,
   DocumentItem,
   FileItem,
   ImageItem,
-  URLItem,
+  PageItem,
 } from "../entities/item";
-import Image from "next/image";
-import buildFileItem from "../entities/buildFileItem";
 import { useGetPageMetadata } from "../hooks/useGetPageMetadata";
 import { useGetUrlMetadata } from "../hooks/useGetUrlMetadata";
-import { isValidURL } from "../utils/utils";
+import { ImageItemCard } from "../components/ImageItemCard";
+import { DocumentItemCard } from "../components/DocumentItemCard";
+import { LoadingCircle } from "../components/ui/LoadingCircle";
+import { PageItemCard } from "../components/PageItemCard";
+import { ErrorMessage } from "../components/ui/ErrorMessage";
+import { Card } from "../components/ui/Card";
+import { RoundedInput } from "../components/inputs/RoundedInput";
+import { guessCliboardDataType } from "../utils/guessCliboardDataType";
 // import styles from "./App.module.scss";
 
 const DEFAULT_DEBOUNCE = 1000;
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const urlPreviewImageRef = useRef<HTMLImageElement>(null);
   const [fileItem, setFileItem] = React.useState<FileItem | ImageItem | null>(
     null,
   );
@@ -30,11 +36,12 @@ export default function Home() {
     null,
   );
   const [errorFileMessage, setErrorFileMessage] = React.useState<string>("");
-  const [urlItem, setUrlItem] = React.useState<URLItem | null>(null);
+  const [pageItem, setPageItem] = React.useState<PageItem | null>(null);
 
   const {
     metadata: pageMetadata,
     isLoading: pageMetadataIsLoading,
+    isError: pageMetadataIsError,
     errorMessage: pageMetadataError,
     resetMetadata: resetPageMetadata,
   } = useGetPageMetadata(inputValue);
@@ -42,6 +49,7 @@ export default function Home() {
   const {
     metadata: urlMetadata,
     isLoading: urlMetadataIsLoading,
+    isError: urlMetadataIsError,
     errorMessage: urlMetadataError,
   } = useGetUrlMetadata(inputValue);
 
@@ -54,18 +62,18 @@ export default function Home() {
   useEffect(() => {
     setFileItem(null);
     if (!urlMetadata) {
-      setUrlItem(null);
+      setPageItem(null);
       return;
     }
 
     const urlItem = buildURLItem(urlMetadata);
 
     if (urlItem.type === "unknown") {
-      setUrlItem(null);
+      setPageItem(null);
       return;
     }
 
-    setUrlItem(urlItem);
+    setPageItem(urlItem);
   }, [urlMetadata]);
 
   /**
@@ -73,35 +81,31 @@ export default function Home() {
    */
   useEffect(() => {
     if (!clipboardData) return;
-
-    const types = clipboardData.types;
-    console.log("fffffffffffffffffffffffffffffff my funcking types:", types);
     setErrorFileMessage("");
 
-    // if it's ONLY text/plain
-    if (
-      types.length <= 0 ||
-      (types.includes("text/plain") && types.length === 1)
-    ) {
-      console.log("fffffffffffffffffffffffffffffff text/plain");
+    const clipboardDataType = guessCliboardDataType(clipboardData);
+
+    // aka if is a URL
+    if (clipboardDataType === "text") {
       const text = clipboardData.getData("text/plain");
-      return setInputValue(text);
+      setInputValue(text);
+    } else if (clipboardDataType === "image") {
+      resetPageMetadata();
+      const item = buildImageItem(clipboardData.files[0]);
+      setFileItem(item);
+    } else if (clipboardDataType === "document") {
+      resetPageMetadata();
+      const item = buildDocumentItem(clipboardData.files[0]);
+      setFileItem(item);
+    } else {
+      // if (clipboardDataType === "unknown")
+      setErrorFileMessage(
+        "Please enter a valid URL (must be remote) or a valid document file",
+      );
+      setFileItem(null);
+      setPageItem(null);
+      setClipboardData(null);
     }
-
-    // if it's a file (image or document)
-    resetPageMetadata();
-    const item = buildFileItem(clipboardData);
-
-    if (item.type !== "unknown") {
-      return setFileItem(item);
-    }
-
-    setErrorFileMessage(
-      "Please enter a valid URL (must be remote) or a valid document file",
-    );
-    setFileItem(null);
-    setUrlItem(null);
-    setClipboardData(null);
   }, [clipboardData, urlMetadata]);
 
   // ============================================
@@ -117,20 +121,9 @@ export default function Home() {
   function handleOnPaste(event: React.ClipboardEvent<HTMLInputElement>) {
     pasteFlag.current = true;
 
-    // TODO: fix image broken after paste 2nd time
-    if (urlPreviewImageRef && urlPreviewImageRef.current)
-      urlPreviewImageRef.current.style.display = "block";
     setErrorFileMessage("");
     inputRef.current.value = "";
-
     setClipboardData(event.clipboardData);
-  }
-
-  function handleOnErrorPagePreviewImage(
-    event: React.SyntheticEvent<HTMLImageElement, Event>,
-  ) {
-    console.log("fffffffffffffffffffffffffffffffffffffffffff error:", event);
-    urlPreviewImageRef.current.style.display = "none";
   }
 
   // ============================================
@@ -141,20 +134,15 @@ export default function Home() {
       <form
         className="flex flex-col items-center justify-center gap-2"
         noValidate
-        onSubmit={(event) => {
-          // disable form submission
-          event.preventDefault();
-        }}
+        onSubmit={(ev) => ev.preventDefault()}
       >
-        <input
+        <RoundedInput
           id="form-input"
           name="input"
-          type="text"
-          className=" h-12 w-96 rounded-full border border-solid border-gray-100 px-4 py-2 shadow-md"
+          ref={inputRef}
           onChange={debounce(async (event) => {
             // paste event has higher priority,
-            // so we need to prevent the change event
-            // from being triggered
+            // therefore we need to prevent the change event
             if (pasteFlag.current) {
               pasteFlag.current = false;
               return;
@@ -162,29 +150,9 @@ export default function Home() {
 
             handleInputChange(event.target.value);
           }, DEFAULT_DEBOUNCE)}
-          placeholder="Type or Paste here..."
           onPaste={handleOnPaste}
-          ref={inputRef}
+          placeholder="Type or Paste here..."
         />
-
-        {errorFileMessage && (
-          <p className="text-red-500">
-            {errorFileMessage ||
-              "Please enter a valid URL (must be remote) or a valid document file"}
-          </p>
-        )}
-
-        {urlMetadataError && (
-          <p className="text-red-500">
-            {urlMetadataError || "Please enter a valid URL (must be remote)"}
-          </p>
-        )}
-
-        {pageMetadataError && (
-          <p className="text-red-500">
-            {pageMetadataError || "Error fetching page metadata"}
-          </p>
-        )}
 
         {/* <button
           type="submit"
@@ -193,6 +161,29 @@ export default function Home() {
           Submit
         </button> */}
       </form>
+
+      {/*========================================== ERROR MESSAGE*/}
+      {/* when url has an error, has priority over page preview */}
+      {urlMetadataIsError ? (
+        <ErrorMessage
+          text={urlMetadataError || "Please enter a valid URL (must be remote)"}
+        />
+      ) : (
+        pageMetadataIsError && (
+          <ErrorMessage
+            text={pageMetadataError || "Error fetching page metadata"}
+          />
+        )
+      )}
+
+      {errorFileMessage && (
+        <ErrorMessage
+          text={
+            errorFileMessage ||
+            "Please enter a valid URL (must be remote) or a valid document file"
+          }
+        />
+      )}
       {/* 
       <div className="flex flex-col items-center justify-center gap-4">
         <p>OR</p>
@@ -264,43 +255,12 @@ export default function Home() {
       </div> */}
 
       {/*=============================================== PAGE CARD*/}
-      {urlItem && urlItem.type === "url" && (
+      {pageItem && pageItem.type === "url" && (
         <div className="flex flex-col items-center justify-center gap-2">
-          {pageMetadataIsLoading && (
-            <div className="flex items-center justify-center gap-2">
-              <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-gray-900"></div>
-            </div>
-          )}
+          {pageMetadataIsLoading && <LoadingCircle />}
           {pageMetadata && (
             <div className="flex h-[200px] max-w-[500px] flex-col items-center justify-center gap-2">
-              <div className="flex flex-col justify-center gap-4 rounded-md border border-solid border-gray-300 p-4">
-                <div className="flex items-center gap-2">
-                  <Image
-                    loader={() => pageMetadata.favicon}
-                    src={pageMetadata.favicon}
-                    alt="favicon"
-                    className="min-h-[20px] min-w-[20px] rounded-sm object-contain"
-                    width={20}
-                    height={20}
-                  />
-                  <p className="line-clamp-1 text-lg font-bold">
-                    {pageMetadata.title}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between gap-2">
-                  <p className=" line-clamp-4 self-start text-wrap text-sm">
-                    {pageMetadata.description}
-                  </p>
-                  <img
-                    src={pageMetadata.image}
-                    alt="image"
-                    ref={urlPreviewImageRef}
-                    className="max-w-[120px] self-stretch rounded-md object-cover shadow-md"
-                    onError={handleOnErrorPagePreviewImage}
-                  />
-                </div>
-              </div>
+              <PageItemCard pageItem={pageMetadata as PageItem} />
             </div>
           )}
         </div>
@@ -308,49 +268,24 @@ export default function Home() {
 
       {/*=============================================== IMAGE CARD*/}
       {!pageMetadata && fileItem && fileItem.type === "image" && (
-        <div className=" relative h-[150px] w-1/4">
-          <Image
-            src={(fileItem as ImageItem).src}
-            alt="image"
-            fill
-            objectFit="contain"
-          />
-        </div>
+        <ImageItemCard imageItem={fileItem as ImageItem} />
       )}
 
       {/*=============================================== DOCUMENT CARD*/}
       {!pageMetadata && fileItem && fileItem.type === "document" && (
-        <div className=" justify-censter flex flex-col items-center gap-2 p-4">
-          <div className="relative flex h-[200px] w-[150px] flex-col items-center justify-center gap-2 rounded-md rounded-tr-3xl border border-solid border-gray-300 p-4">
-            <p className="absolute -left-[.5em] top-4 rounded-md rounded-bl-md border border-gray-100 bg-gray-100 px-4 py-1 text-sm font-bold text-gray-600 shadow-md">
-              .{(fileItem as FileItem).extension}
-            </p>
-            <p className="w-full truncate text-wrap text-center text-sm font-bold text-gray-500">
-              {(fileItem as FileItem).name}
-            </p>
-          </div>
-          <a
-            href={(fileItem as DocumentItem).src}
-            target="_blank"
-            className="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
-          >
-            Open
-          </a>
-        </div>
+        <DocumentItemCard documentItem={fileItem as DocumentItem} />
       )}
 
       {/*=============================================== METADATA CARD*/}
-      {urlMetadataIsLoading && (
-        <div className="flex items-center justify-center gap-2">
-          <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-gray-900"></div>
-        </div>
-      )}
-      {!fileItem && urlItem && (
+      {urlMetadataIsLoading && <LoadingCircle />}
+      {!fileItem && pageItem && (
         <div className="flex w-full flex-col items-center justify-center gap-2">
           <p>metadata:</p>
-          <pre className="w-full overflow-auto rounded-md border border-solid border-gray-300 bg-slate-100 p-4">
-            {urlItem && JSON.stringify(urlItem, null, 2)}
-          </pre>
+          <Card className="w-full bg-slate-100 p-4">
+            <pre className="overflow-auto">
+              {pageItem && JSON.stringify(pageItem, null, 2)}
+            </pre>
+          </Card>
         </div>
       )}
     </main>

@@ -1,6 +1,6 @@
 import { formatDateToISO8601 } from "../utils/dates";
 import { URLMetadataResponse } from "../app/api/url-meta/route";
-import { URLMetadata } from "../types/urlMetadata";
+import { URLMetadata } from "../types/URLMetadata";
 
 export type ItemType =
   | "text"
@@ -34,7 +34,13 @@ export type TextItem = BaseItem & {
   text: string;
 };
 
-export type URLItem = BaseItem & URLMetadata;
+export type PageItem = BaseItem &
+  URLMetadata & {
+    favicon?: string;
+    image?: string;
+    title?: string;
+    description?: string;
+  };
 
 // ======================================================
 // UTILS
@@ -68,7 +74,7 @@ export function buildImageItem(file: File): ImageItem {
   };
 }
 
-export function buildURLItem(urlMetadata: URLMetadataResponse): URLItem {
+export function buildURLItem(urlMetadata: URLMetadataResponse): PageItem {
   if (urlMetadata.hasFailed) {
     return {
       ...urlMetadata,

@@ -1,10 +1,4 @@
-import {
-  BaseItem,
-  buildDocumentItem,
-  buildImageItem,
-  DocumentItem,
-  ImageItem,
-} from "./item";
+type ClipboardType = "text" | "image" | "document" | "unknown";
 
 const DOCUMENT_MIMES = [
   "application/pdf",
@@ -18,10 +12,14 @@ const DOCUMENT_MIMES = [
   "text/plain",
 ];
 
-function buildFileItem(
-  clipboardData: DataTransfer,
-): BaseItem | DocumentItem | ImageItem {
+export function guessCliboardDataType(
+  clipboardData: DataTransfer | null,
+): ClipboardType {
   const types = clipboardData.types;
+
+  const isText =
+    types.length <= 0 || (types.includes("text/plain") && types.length === 1);
+  const isImageFromWeb = types.includes("text/html") && types.includes("Files");
 
   // WARNING: the order of the checks is important
   // since the clipboardData.types is an array
@@ -29,27 +27,19 @@ function buildFileItem(
   // e.g. ["text/html", "Files"]
   // therefore, we need to check the most specific type first
   //
+  if (isText) return "text";
+
   // if is a file from the web
   // e.g. "Copy image" from an image on a website
-  if (types.includes("text/html") && types.includes("Files")) {
-    const file = clipboardData.files[0];
-    console.log(file);
-    return buildImageItem(file);
-  }
+  if (isImageFromWeb) return "image";
   // if is a file from local
   // e.g. "Copy" from a local file
   else if (types.includes("Files")) {
     const file = clipboardData.files[0];
 
-    console.log("ffffffffffffffffffffffffff type: ", types);
-
-    if (file.type.includes("image/")) return buildImageItem(file);
-    if (DOCUMENT_MIMES.includes(file.type)) return buildDocumentItem(file);
+    if (file.type.includes("image/")) return "image";
+    if (DOCUMENT_MIMES.includes(file.type)) return "document";
   }
 
-  return {
-    type: "unknown",
-  } as BaseItem;
+  return "unknown";
 }
-
-export default buildFileItem;

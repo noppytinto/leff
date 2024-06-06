@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { isURLSecure, isValidURL, maybeAddScheme } from "../../../utils/utils";
 import { sanitizeUrl } from "../../../utils/url";
 import { BaseApiResponse } from "../../../types/response";
-import { URLMetadata } from "../../../types/urlMetadata";
+import { URLMetadata } from "../../../types/URLMetadata";
 
 export type URLMetadataResponse = BaseApiResponse & URLMetadata;
 

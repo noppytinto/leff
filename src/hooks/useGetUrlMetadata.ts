@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { URLMetadataResponse } from "../app/api/url-meta/route";
-import { URLMetadata } from "../types/urlMetadata";
+import { URLMetadata } from "../types/URLMetadata";
 
 const BASE_API_URL_META_URL = "/api/url-meta";
 
@@ -8,6 +8,7 @@ export function useGetUrlMetadata(url: string | null) {
   const [metadata, setMetadata] = useState<URLMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
+  const [isError, setIsError] = React.useState(false);
 
   useEffect(() => {
     if (!url) {
@@ -19,6 +20,7 @@ export function useGetUrlMetadata(url: string | null) {
     (async () => {
       setIsLoading(true);
       setMetadata(null);
+      setIsError(false);
       setErrorMessage("");
 
       const apiUrl = BASE_API_URL_META_URL + "?url=" + url;
@@ -27,18 +29,16 @@ export function useGetUrlMetadata(url: string | null) {
       if (ac.signal.aborted) return;
 
       if (!response.ok) {
+        setIsError(true);
         setErrorMessage("Error fetching URL metadata: " + response.statusText);
         setIsLoading(false);
         return;
       }
 
       const data: URLMetadataResponse = await response.json();
-      console.log(
-        "fffffffffffffffffffffffffffffffffffff url response data:",
-        data,
-      );
 
       if (data.hasFailed) {
+        setIsError(true);
         setErrorMessage("Error fetching URL metadata: " + data.errorMessage);
         setIsLoading(false);
         return;
@@ -58,10 +58,11 @@ export function useGetUrlMetadata(url: string | null) {
       setIsLoading(false);
     })();
 
+    // TODO: investigate if this is necessary, at the moment causes a an unusual abort
     // return () => {
     //   ac.abort();
     // };
   }, [url]);
 
-  return { metadata, isLoading, errorMessage };
+  return { metadata, isLoading, isError, errorMessage };
 }
