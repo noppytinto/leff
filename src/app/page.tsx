@@ -7,7 +7,6 @@ import {
   buildImageItem,
   buildURLItem,
   DocumentItem,
-  FileItem,
   ImageItem,
   PageItem,
 } from "../entities/item";
@@ -27,16 +26,15 @@ const DEFAULT_DEBOUNCE = 1000;
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [fileItem, setFileItem] = React.useState<FileItem | ImageItem | null>(
-    null,
-  );
   const pasteFlag = useRef(false);
   const [inputValue, setInputValue] = React.useState<string>("");
   const [clipboardData, setClipboardData] = React.useState<DataTransfer | null>(
     null,
   );
   const [errorFileMessage, setErrorFileMessage] = React.useState<string>("");
-  const [pageItem, setPageItem] = React.useState<PageItem | null>(null);
+  const [item, setItem] = React.useState<
+    ImageItem | DocumentItem | PageItem | null
+  >(null);
 
   const {
     metadata: pageMetadata,
@@ -60,20 +58,17 @@ export default function Home() {
    * build URL item
    */
   useEffect(() => {
-    setFileItem(null);
-    if (!urlMetadata) {
-      setPageItem(null);
-      return;
-    }
+    setItem(null);
+    if (!urlMetadata) return;
 
     const urlItem = buildURLItem(urlMetadata);
 
     if (urlItem.type === "unknown") {
-      setPageItem(null);
+      setItem(null);
       return;
     }
 
-    setPageItem(urlItem);
+    setItem(urlItem);
   }, [urlMetadata]);
 
   /**
@@ -92,18 +87,17 @@ export default function Home() {
     } else if (clipboardDataType === "image") {
       resetPageMetadata();
       const item = buildImageItem(clipboardData.files[0]);
-      setFileItem(item);
+      setItem(item);
     } else if (clipboardDataType === "document") {
       resetPageMetadata();
       const item = buildDocumentItem(clipboardData.files[0]);
-      setFileItem(item);
+      setItem(item);
     } else {
       // if (clipboardDataType === "unknown")
       setErrorFileMessage(
         "Please enter a valid URL (must be remote) or a valid document file",
       );
-      setFileItem(null);
-      setPageItem(null);
+      setItem(null);
       setClipboardData(null);
     }
   }, [clipboardData, urlMetadata]);
@@ -112,9 +106,7 @@ export default function Home() {
   // FUNCTIONS
   // ============================================
   function handleInputChange(inputUrl: string | null) {
-    setErrorFileMessage("");
-    // setFileItem(null);
-    // setUrlItem(null);
+    if (!errorFileMessage) setErrorFileMessage("");
     setInputValue(inputUrl);
   }
 
@@ -255,7 +247,7 @@ export default function Home() {
       </div> */}
 
       {/*=============================================== PAGE CARD*/}
-      {pageItem && pageItem.type === "url" && (
+      {item && item.type === "url" && (
         <div className="flex flex-col items-center justify-center gap-2">
           {pageMetadataIsLoading && <LoadingCircle />}
           {pageMetadata && (
@@ -267,24 +259,22 @@ export default function Home() {
       )}
 
       {/*=============================================== IMAGE CARD*/}
-      {!pageMetadata && fileItem && fileItem.type === "image" && (
-        <ImageItemCard imageItem={fileItem as ImageItem} />
+      {item && item.type === "image" && (
+        <ImageItemCard imageItem={item as ImageItem} />
       )}
 
       {/*=============================================== DOCUMENT CARD*/}
-      {!pageMetadata && fileItem && fileItem.type === "document" && (
-        <DocumentItemCard documentItem={fileItem as DocumentItem} />
+      {item && item.type === "document" && (
+        <DocumentItemCard documentItem={item as DocumentItem} />
       )}
 
       {/*=============================================== METADATA CARD*/}
       {urlMetadataIsLoading && <LoadingCircle />}
-      {!fileItem && pageItem && (
+      {item && (
         <div className="flex w-full flex-col items-center justify-center gap-2">
           <p>metadata:</p>
           <Card className="w-full bg-slate-100 p-4">
-            <pre className="overflow-auto">
-              {pageItem && JSON.stringify(pageItem, null, 2)}
-            </pre>
+            <pre className="overflow-auto">{JSON.stringify(item, null, 2)}</pre>
           </Card>
         </div>
       )}

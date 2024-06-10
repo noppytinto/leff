@@ -27,6 +27,8 @@ export const RoundedInput = React.forwardRef(function RoundedInput(
         }}
         {...rest}
       />
+
+      {/*=============================================== CLEAR BUTTON */}
       <button
         className="absolute right-4 top-1/2 -translate-y-1/2 transform rounded-full bg-white p-2"
         onClick={(ev) => {

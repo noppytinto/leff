@@ -31,15 +31,26 @@ export function PageItemCard({
         </p>
 
         {/*======================================= THUMBNAIL */}
-        {showThumbnail && (
+        {showThumbnail && pageItem.image && (
           <img
             src={pageItem.image}
             alt="image"
             className="max-w-[120px] self-stretch rounded-md object-cover shadow-md"
-            onError={onError}
+            onError={(ev) => {
+              if (onError) {
+                onError(ev);
+                return;
+              }
+
+              addBrokenImage(ev);
+            }}
           />
         )}
       </div>
     </Card>
   );
+}
+
+function addBrokenImage(ev: React.SyntheticEvent<HTMLImageElement>) {
+  ev.currentTarget.src = "/no-image.svg";
 }
